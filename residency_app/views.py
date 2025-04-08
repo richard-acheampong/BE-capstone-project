@@ -8,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminOrCoordinator, IsAdminCoordinatorCoachResident
 from .serializers import UserRegistrationSerializer, CohortSerializer, ResidentSerializer
 from .models import Cohort, Resident, User
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 # Create your views here.
 # ------------------ User Views ------------------
@@ -51,6 +53,9 @@ class CohortDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ResidentListCreateView(generics.ListCreateAPIView):
     serializer_class = ResidentSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['cohort', 'coach', 'sending_church']
+    search_fields = ['sending_church', 'plant_name', 'user__username']
 
     def get_queryset(self):
         user = self.request.user

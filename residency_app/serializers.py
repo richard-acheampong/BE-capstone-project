@@ -20,13 +20,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
 # ------------------ Cohort Serializers ------------------
 class CohortSerializer(serializers.ModelSerializer):
+    coordinator_username = serializers.CharField(source='coordinator.username', read_only=True)
     class Meta:
         model = Cohort
-        fields = ['id', 'name', 'year', 'coordinator']
+        fields = ['id', 'name', 'year', 'coordinator', 'coordinator_username']
 
 
 # ------------------ Resident Serializer ------------------
 class ResidentSerializer(serializers.ModelSerializer):
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    cohort_name = serializers.CharField(source='cohort.name', read_only=True)
+    coach_username = serializers.CharField(source='coach.username', read_only=True)
     class Meta:
         model = Resident
-        fields = ['id', 'user', 'cohort', 'sending_church', 'plant_name', 'plant_location']
+        fields = ['id', 'user_username', 'cohort_name', 'coach_username', 'sending_church', 'plant_name']
