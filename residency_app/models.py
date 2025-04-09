@@ -9,7 +9,7 @@ class User(AbstractUser):
     ADMIN = 'admin'
     COORDINATOR = 'coordinator'
     COACH = 'coach'
-    RESIDENT = 'resient'
+    RESIDENT = 'resident'
 
     role_choices = [
         (ADMIN, 'Administrator'),
@@ -33,13 +33,18 @@ class Cohort(models.Model):
         on_delete=models.SET_NULL,
         null= True,
         limit_choices_to= {'role': User.COORDINATOR},
-        related_name= 'cohorts'
+        related_name= 'coordinated_cohorts'
+    )
+    resident = models.ManyToManyField(
+        'User',
+        related_name = 'assigned_cohorts',
+        blank= True
     )
 
     def __str__(self):
         return f'{self.name} ({self.year})'
     
-# ------------------ Cohort Model ------------------
+# ------------------ Resident Model ------------------
 class Resident(models.Model):
     user =  models.OneToOneField(
         settings.AUTH_USER_MODEL,

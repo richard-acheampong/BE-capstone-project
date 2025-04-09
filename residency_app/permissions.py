@@ -19,7 +19,10 @@ class IsResident(BasePermission):
     
 class IsAdminOrCoordinator(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in [User.ADMIN, User.COORDINATOR]
+        if request.user.is_authenticated:
+            print(f'User Role: {request.user.role}')
+            return request.user.role in [User.ADMIN, User.COORDINATOR]
+        return False
     
 # ------------------ Access Permissions ------------------
 

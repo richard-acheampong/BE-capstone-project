@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.contrib.auth import authenticate
+from rest_framework.authentication import TokenAuthentication
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,6 +12,7 @@ from .serializers import UserRegistrationSerializer, CohortSerializer, ResidentS
 from .models import Cohort, Resident, User
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from django.db.models import Prefetch
 
 # Create your views here.
 # ------------------ User Views ------------------
@@ -21,7 +24,7 @@ class UserRegistrationView(APIView):
             #save and create a token
             user = serializer.save()
             token, _ = Token.objects.get_or_create(user=user)
-            # Return a success mesaage with token nd user details
+            # Return a success mesaage with token and user details
             return Response({
                 'message': 'User registered successfully',
                 'token': token.key,
@@ -31,22 +34,35 @@ class UserRegistrationView(APIView):
         # Return error is serializer is invalid
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
 
+        user = authenticate(username=username, password=password)
+
+        if user:
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
+
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 # ------------------ Cohort Views ------------------
-class CohortListCreateView(generics.ListCreateAPIView):
+class CohortListView(generics.ListAPIView):
     queryset = Cohort.objects.all()
     serializer_class = CohortSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['year']  
+    filterset_fields = ['year']
     search_fields = ['name', 'coordinator__username']
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 
+class CohortCreateView(generics.CreateAPIView):
+    queryset = Cohort.objects.all()
+    serializer_class = CohortSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrCoordinator ]
 
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsAuthenticated(), IsAdminOrCoordinator()]
-        return [IsAuthenticated()]
-
+     
 class CohortDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Cohort.objects.all()
     serializer_class = CohortSerializer
@@ -59,10 +75,14 @@ class CohortDetailView(generics.RetrieveUpdateDestroyAPIView):
 # ------------------ Resident Views ------------------
 class ResidentListCreateView(generics.ListCreateAPIView):
     serializer_class = ResidentSerializer
-    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['cohort', 'coach', 'sending_church']
     search_fields = ['sending_church', 'plant_name', 'user__username']
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminOrCoordinator()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -82,7 +102,50 @@ class ResidentListCreateView(generics.ListCreateAPIView):
 class ResidentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Resident.objects.all()
     serializer_class = ResidentSerializer
-    permission_classes = [IsAuthenticated, IsAdminCoordinatorCoachResident]
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'DELETE']:
+            return [IsAdminOrCoordinator()]
+        return [IsAuthenticated()]
+
+
+
+
+# ------------------ Report Views ------------------
+class CohortSummaryReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data = []
+        cohorts = Cohort.objects.all()
+        for cohort in cohorts:
+            resident_count = cohort.resident.count()
+            data.append({
+                'cohort': cohort.name,
+                'year': cohort.year,
+                'resident_count': resident_count
+            })
+        return Response(data)
+    
+
+class CoachResidentReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data = []
+        coaches = User.objects.filter(role='Coach')
+        for coach in coaches:
+            residents = Resident.objects.filter(coach=coach)
+            data.append({
+                'coach': coach.username,
+                'resident_count': residents.count(),
+                'residents': [
+                    {'name': r.user.username, 'cohort': r.cohort.name} for r in residents
+                ]
+            })
+        return Response(data)
+
 
 
 

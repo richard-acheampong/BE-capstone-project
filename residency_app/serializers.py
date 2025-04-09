@@ -33,4 +33,19 @@ class ResidentSerializer(serializers.ModelSerializer):
     coach_username = serializers.CharField(source='coach.username', read_only=True)
     class Meta:
         model = Resident
-        fields = ['id', 'user_username', 'cohort_name', 'coach_username', 'sending_church', 'plant_name']
+        fields = ['id', 'user', 'cohort', 'coach', 'user_username', 'cohort_name', 'coach_username', 'sending_church', 'plant_name']
+
+
+class AssignResidentSerializer(serializers.Serializer):
+    resident_id = serializers.IntegerField()
+
+    def validate_resident_id(self, value):
+        try:
+            user = User.objects.get(id=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Resident does not exist.")
+        
+        if user.role != User.RESIDENT:
+            raise serializers.ValidationError("User is not a resident.")
+        
+        return value
