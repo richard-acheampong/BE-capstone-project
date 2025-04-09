@@ -34,20 +34,27 @@ class UserRegistrationView(APIView):
 
 
 # ------------------ Cohort Views ------------------
-class CohortListView(generics.ListAPIView):
+class CohortListCreateView(generics.ListCreateAPIView):
     queryset = Cohort.objects.all()
     serializer_class = CohortSerializer
-    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['year']  
+    search_fields = ['name', 'coordinator__username']
 
-class CohortCreateView(generics.ListCreateAPIView):
-    queryset = Cohort.objects.all()
-    serializer_class = CohortSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminOrCoordinator()]
+        return [IsAuthenticated()]
 
 class CohortDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Cohort.objects.all()
     serializer_class = CohortSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'DELETE']:
+            return [IsAuthenticated(), IsAdminOrCoordinator()]
+        return [IsAuthenticated()]
 
 # ------------------ Resident Views ------------------
 class ResidentListCreateView(generics.ListCreateAPIView):

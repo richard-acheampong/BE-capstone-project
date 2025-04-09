@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework.authtoken.views import obtain_auth_token
-from .views import UserRegistrationView, CohortListView, CohortCreateListView, CohortDetailView, ResidentDetailView, ResidentListCreateView
+from .views import UserRegistrationView, CohortListCreateView, CohortDetailView, ResidentDetailView, ResidentListCreateView
 
 urlpatterns =[
     #user urls
@@ -8,8 +8,7 @@ urlpatterns =[
     path('residency/login/', obtain_auth_token, name= 'login'),
 
     #cohort urls
-    path('residency/cohorts/', CohortListView.as_view(), name= 'cohort-list-create'),
-    path('residency/cohorts/create/', CohortCreateListView.as_view(), name= 'cohort-list-create'),
+    path('residency/cohorts/', CohortListCreateView.as_view(), name= 'cohort-list-create'),
     path('residency/cohorts/<int:pk>/', CohortDetailView.as_view(), name= 'cohort-detail'),
 
     #resident urls
